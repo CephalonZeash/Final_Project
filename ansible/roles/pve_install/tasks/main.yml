@@ -83,7 +83,7 @@
   debconf:
     name: postfix
     question: postfix/mailname
-    value: pve-p01.grghomelab.me
+    value: "{{ pve_hostname }}.{{ pve_domain }}"
     vtype: string
   tags:
     - pve
