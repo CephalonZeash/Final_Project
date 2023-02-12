@@ -1,0 +1,28 @@
+# Use this deployment for stress testing, preferably from a different cluster
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infinite-calls
+  namespace: default
+  labels:
+    app: infinite-calls
+spec:
+  replicas: 50
+  selector:
+    matchLabels:
+      app: infinite-calls
+  template:
+    metadata:
+      name: infinite-calls
+      labels:
+        app: infinite-calls
+    spec:
+      containers:
+        - name: infinite-calls
+          image: busybox
+          command:
+            - /bin/sh
+            - -c
+            # Repeatedly keeps downloading the webpage
+            - "while true; do wget -q --no-check-certificate https://domain.com -O /dev/null; done"

@@ -1,0 +1,19 @@
+- name: Include variable files
+  include_vars:
+    dir: ../../../global_vars
+  tags:
+    - basic_conf
+    - basic_conf_user
+    - basic_conf_other
+
+- name: Include user related tasks
+  include_tasks: user.yml
+  tags:
+    - basic_conf
+    - basic_conf_user
+
+- name: Include other tasks
+  include_tasks: other.yml
+  tags:
+    - basic_conf
+    - basic_conf_other

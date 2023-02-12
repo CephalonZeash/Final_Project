@@ -1,0 +1,39 @@
+# This role should be executed in serial to avoid conflicts and other issues with the installation process.
+
+- name: Include variable files
+  include_vars: 
+    dir: ../../../global_vars
+  tags:
+    - node
+    - node_cleanup
+    - node_install
+
+# - name: Set necessary variables
+#   set_fact:
+#     node_hostname: "{{ ansible_hostname }}"
+#     node_ip: "{{ inventory_hostname }}"
+#   tags:
+#     - node
+#     - node_cleanup
+#     - node_install
+
+- name: Set the endpoint variable
+  set_fact:
+    new_endpoint_ip: "{{ groups['new_endpoint'].0 | default(omit) }}"
+  when: groups['new_endpoint'].0 is defined
+  tags:
+    - node
+    - node_cleanup
+    - node_install
+
+- name: Include cleanup related tasks
+  include_tasks: cleanup.yml
+  tags:
+    - node
+    - node_cleanup
+
+- name: Include node installation related tasks
+  include_tasks: install.yml
+  tags:
+    - node
+    - node_install

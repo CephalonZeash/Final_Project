@@ -1,0 +1,10 @@
+# Always redirect from HTTP to HTTPS
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect
+  namespace: oc
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

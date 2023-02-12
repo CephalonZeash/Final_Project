@@ -1,0 +1,97 @@
+- name: Run the installation script to initialize the cluster
+  environment:
+    ENDPOINT: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+    IP: "{{ inventory_hostname }}"
+    TOKEN: "{{ k3s_token }}"
+    VERSION: "{{ k3s_version }}"
+  shell: |
+    curl -sfL https://get.k3s.io | \
+    K3S_TOKEN=$TOKEN \
+    INSTALL_K3S_VERSION=$VERSION \
+    sh -s - server \
+    --node-taint CriticalAddonsOnly=true:NoExecute \
+    --kubelet-arg "node-status-update-frequency=4s" \
+    --kube-controller-manager-arg "node-monitor-period=4s" \
+    --kube-controller-manager-arg "node-monitor-grace-period=16s" \
+    --kube-controller-manager-arg "pod-eviction-timeout=10s" \
+    --kube-controller-manager-arg "horizontal-pod-autoscaler-sync-period=10s" \
+    --kube-apiserver-arg "default-not-ready-toleration-seconds=10" \
+    --kube-apiserver-arg "default-unreachable-toleration-seconds=10" \
+    --tls-san $IP --tls-san $ENDPOINT \
+    --cluster-init
+    sleep 30
+  args:
+    executable: /bin/bash
+  when: cluster_init == 1
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Run the installation script to add a control plane to the cluster
+  environment:
+    ENDPOINT: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+    IP: "{{ inventory_hostname }}"
+    TOKEN: "{{ k3s_token }}"
+  shell: |
+    systemctl status k3s
+    if [[ $? == 4 ]]; then
+      curl -sfL https://get.k3s.io | \
+      K3S_TOKEN=$TOKEN \
+      sh -s - server \
+      --node-taint CriticalAddonsOnly=true:NoExecute \
+      --kubelet-arg "node-status-update-frequency=4s" \
+      --kube-controller-manager-arg "node-monitor-period=4s" \
+      --kube-controller-manager-arg "node-monitor-grace-period=16s" \
+      --kube-controller-manager-arg "horizontal-pod-autoscaler-sync-period=10s" \
+      --kube-controller-manager-arg "pod-eviction-timeout=10s" \
+      --kube-apiserver-arg "default-not-ready-toleration-seconds=10" \
+      --kube-apiserver-arg "default-unreachable-toleration-seconds=10" \
+      --tls-san $IP --tls-san $ENDPOINT \
+      --server https://$ENDPOINT:6443
+    fi
+    sleep 2
+  args:
+    executable: /bin/bash
+  when: cluster_init == 0
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Remove the host from the 'new_control_plane' group
+  delegate_to: localhost
+  lineinfile:
+    path: ../inventory.ini
+    line: "{{ inventory_hostname }}"
+    state: absent
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Add the host to the 'control_plane' group
+  delegate_to: localhost
+  lineinfile:
+    path: ../inventory.ini
+    insertafter: "[^_]control_plane"
+    line: "{{ inventory_hostname }}"
+    state: present
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Add the server to HAProxy's config
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_control_planes$"
+    line: "  server {{ ansible_hostname }} {{ inventory_hostname }}:6443"
+    state: present
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Reload the HAProxy config
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  shell: docker kill -s HUP haproxy
+  tags: 
+    - control_plane
+    - control_plane_install

@@ -1,0 +1,42 @@
+- name: Create user groups
+  group:
+    name: "{{ item.username }}"
+  loop: "{{ users }}"
+  tags:
+    - basic_conf
+    - basic_conf_user
+
+- name: Manage users
+  user:
+    name: "{{ item.0.username }}"
+    password: "{{ item.0.password }}"
+    state: "{{ item.0.state | default('present') }}"
+    append: "{{ item.0.append | default('yes') }}"
+    groups: "{{ item.0.groups | default( item.0.username ) }}"
+    shell: "{{ item.0.shell | default('/bin/bash') }}"
+  loop: "{{ users | subelements('hosts', 'skip_missing=True') }}"
+  when: inventory_hostname == item.1 or "all" == item.1
+  tags:
+    - basic_conf
+    - basic_conf_user
+
+- name: Update authorized keys
+  authorized_key:
+    user: "{{ item.0.username }}"
+    key: "{{ item.1 }}"
+    state: "{{ item.0.state | default('present') }}"
+  loop: "{{ vm_authorized_keys | subelements('keys', 'skip_missing=True') }}"
+  tags:
+    - basic_conf
+    - basic_conf_user
+
+- name: Disable PasswordAuthentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regex: ^(# *)?PasswordAuthentication
+    line: PasswordAuthentication no
+  notify:
+    - Restart the OpenSSH server
+  tags:
+    - basic_conf
+    - basic_conf_user

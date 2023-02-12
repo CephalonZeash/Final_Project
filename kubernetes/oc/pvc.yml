@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: oc-keys
+  annotations:
+    nfs.io/storage-path: "oc-keys"
+spec:
+  storageClassName: nfs-sc
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 50Mi

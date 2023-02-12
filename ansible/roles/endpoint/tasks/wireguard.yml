@@ -1,0 +1,90 @@
+- name: Set the storage variable
+  set_fact:
+    new_storage_ip: "{{ groups['new_storage'].0 | default(omit) }}"
+  when: groups['new_storage'].0 is defined
+  tags:
+    - endpoint
+    - endpoint_wireguard
+
+- name: Create the Wireguard container using Docker Compose
+  environment:
+    image: "{{ wireguard_image }}"
+    domain: "{{ oc_domain }}"
+    subdomain: "{{ wireguard_subdomain }}"
+    peer_subnet: "{{ peer_subnet }}"
+    peer_dns: "{{ peer_dns }}"
+    peer_names: "{{ wireguard_peers }}"
+    storage_ip: "{{ groups['storage'].0 | default(new_storage_ip)}}"
+    timezone: "{{ timezone }}"
+  shell: |+
+    if [[ ! $(docker ps | grep wireguard) ]]; then
+    mkdir -p /opt/docker_compose/wireguard
+    cd /opt/docker_compose/wireguard
+    docker compose down
+    docker volume rm wireguard_config
+    cat << EOF | sudo tee docker-compose.yml > /dev/null
+
+    version: "3"
+
+    volumes:
+      config:
+        name: wireguard_config
+        driver: local
+        driver_opts:
+          type: nfs
+          o: "addr=$storage_ip,rw,nfsvers=4,nolock,soft"
+          device: ":/var/nfs/endpoint/wireguard_config"
+
+    services:
+      wireguard:
+        container_name: wireguard
+        image: $image
+        cap_add:
+          - NET_ADMIN
+          - SYS_MODULE
+        environment:
+          PUID: 1000
+          PGID: 1000
+          TZ: $timezone
+          SERVERURL: $subdomain.$domain
+          SERVERPORT: 51820
+          PEERS: $peer_names
+          PEERDNS: $peer_dns
+          INTERNAL_SUBNET: $peer_subnet
+          LOG_CONFS: true
+        volumes:
+          - config:/config
+          - /lib/modules:/lib/modules
+        ports:
+          - 51820:51820/udp
+        hostname: wireguard-0
+        sysctls:
+          - net.ipv4.conf.all.src_valid_mark=1
+        restart: unless-stopped
+          
+    EOF
+    docker compose up -d
+    fi
+  args:
+    executable: /bin/bash
+  tags:
+    - endpoint
+    - endpoint_wireguard
+
+- name: Create the scripts directory
+  file:
+    path: /root/scripts
+    state: directory
+    mode: 700
+  tags:
+    - endpoint
+    - endpoint_wireguard
+
+- name: Add a script for looking up info about peers
+  template:
+    src: wg_peer_info.sh.j2
+    dest: /root/scripts/wg_peer_info.sh
+    mode: 700
+  tags:
+    - endpoint
+    - endpoint_wireguard

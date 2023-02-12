@@ -1,0 +1,68 @@
+- name: Refresh export file
+  hosts: storage
+  remote_user: root
+  gather_facts: false
+  tasks:
+    - name: Clear exports file
+      ansible.builtin.shell: |+
+        truncate -s 0 /etc/exports
+    - name: Add permissions for new endpoint
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['new_endpoint'] }}"
+
+    - name: Add permissions for the already existing endpoint
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['endpoint'] }}"
+
+    - name: Add permissions for new control planes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['new_control_plane'] }}"
+
+    - name: Add permissions for already existing control planes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['control_plane'] }}"
+
+    - name: Add permissions for new zone A nodes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['new_zone_a_node'] }}"
+
+    - name: Add permissions for already existing zone A nodes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['zone_a_node'] }}"
+
+    - name: Add permissions for new zone B nodes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['new_zone_b_node'] }}"
+    
+    - name: Add permissions for already existing zone B nodes
+      ansible.builtin.lineinfile:
+        path: "/etc/exports"
+        insertafter: EOF
+        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+      loop: "{{ groups['zone_b_node'] }}"
+
+    - name: Refresh export
+      shell: exportfs -a
+  tags:
+    - storage

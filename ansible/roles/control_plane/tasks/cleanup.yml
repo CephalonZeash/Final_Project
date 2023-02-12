@@ -1,0 +1,89 @@
+- name: Clear the HAProxy config for all control planes
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    search_string: "{{ item }}"
+    state: absent
+  loop: "{{ groups['control_plane'] }}"
+  when: ( cluster_init == 1 ) and ( groups['control_plane'].0 is defined )
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Clear the HAProxy config for all zone A nodes
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    search_string: "{{ item }}"
+    state: absent
+  loop: "{{ groups['zone_a_node'] }}"
+  when: ( cluster_init == 1 ) and ( groups['zone_a_node'].0 is defined )
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Clear the HAProxy config for all zone B nodes
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    search_string: "{{ item }}"
+    state: absent
+  loop: "{{ groups['zone_b_node'] }}"
+  when: ( cluster_init == 1 ) and ( groups['zone_b_node'].0 is defined )
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Reload the HAProxy config
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  shell: docker kill -s HUP haproxy
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Check if there are faulty K3s installations
+  shell: |
+    systemctl status k3s > /dev/null
+    if [[ $? = 0 ]]; then
+      echo no
+    else
+      echo yes
+    fi
+  args:
+    executable: /bin/bash
+  register: k3s_check_tmp
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Set the k3s_check variable
+  set_fact:
+    k3s_check: "{{ k3s_check_tmp['stdout'] }}"
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Remove the faulty control plane from the cluster
+  environment:
+    name: "{{ ansible_hostname }}"
+  shell: bash ../roles/control_plane/files/delete-node.sh $name
+  delegate_to: localhost
+  become: false
+  ignore_errors: true
+  when: ( k3s_check is true ) and ( hostvars[groups['control_plane'].0 | default(groups['new_control_plane'].0)]['cluster_cleanup'] is false )
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Remove the previous K3s installation
+  shell: |+
+    if [[ -f /usr/local/bin/k3s-uninstall.sh ]]; then
+      /usr/local/bin/k3s-uninstall.sh
+    fi
+    sleep 5
+  args:
+    executable: /bin/bash
+  when: ( k3s_check is true ) or ( hostvars[groups['control_plane'].0 | default(groups['new_control_plane'].0)]['cluster_cleanup'] is true )
+  tags:
+    - control_plane
+    - control_plane_cleanup

@@ -1,0 +1,35 @@
+# This playbook requires the "host_type", "host_ip", "host_state" and "host_name" variables defined with the --extra-vars flag
+
+- name: Edit load balancer configuration for newly created/destroyed Kubernetes control plane or node.
+  hosts: all
+  remote_user: root
+  gather_facts: false
+  tasks:
+    - name: Add or remove line for specified control plane.
+      ansible.builtin.lineinfile:
+        path: /etc/haproxy/haproxy.cfg
+        insertbefore: "frontend kubernetes_control_planes$"
+        line: "  server {{ host_name }} {{ host_ip }}:6443"
+        state: "{{ host_state }}"
+      when: host_type == "control_plane"
+
+    - name: Add or remove http line for specified node.
+      ansible.builtin.lineinfile:
+        path: /etc/haproxy/haproxy.cfg
+        insertbefore: "frontend kubernetes_nodes_http$"
+        line: "  server {{ host_name }} {{ host_ip }}:80"
+        state: "{{ host_state }}"
+      when: host_type == "node"
+
+    - name: Add or remove https line for specified node.
+      ansible.builtin.lineinfile:
+        path: /etc/haproxy/haproxy.cfg
+        insertbefore: "frontend kubernetes_nodes_https$"
+        line: "  server {{ host_name }} {{ host_ip }}:443"
+        state: "{{ host_state }}"
+      when: host_type == "node"
+
+    - name: Reload configuration
+      shell: docker kill -s HUP haproxy
+  tags:
+    - endpoint_hosts

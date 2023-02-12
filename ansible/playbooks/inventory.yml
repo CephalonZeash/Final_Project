@@ -1,0 +1,12 @@
+# This playbook requires the "host_group", "host_ip" and "host_state" variables defined with the --extra-vars flag
+
+- name: Manage Ansible inventory
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Edit inventory
+      ansible.builtin.lineinfile:
+        path: ../inventory.ini
+        insertafter: "{{ host_group }}"
+        line: "{{ host_ip }}"
+        state: "{{ host_state }}"

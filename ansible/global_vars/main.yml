@@ -1,0 +1,79 @@
+# Example values:
+
+### General variables
+
+timezone: Country/City
+
+oc_domain: domain.com
+
+local_domain: domain.local
+
+# Desired non-mandatory packages to install
+non_mandatory_packages:
+  - htop
+  - vim
+  - tree
+  - curl
+  - neofetch
+
+### PVE variables
+
+# Gateway to be used for the vmbr0 interface
+gateway: 192.168.100.1
+
+# Hostname to be assigned to the PVE host
+pve_hostname: pve-01
+
+# Desired network interface name
+pve_net_interface: enp1
+
+# Up to preference, won't affect server functionality
+pve_cluster_name: domain
+
+# Personal admin user's name
+pve_user: joe@pam
+
+# Necessary 'admin' group alongside any you add yourself
+pve_groups:
+  - name: admin
+    comment: System Administrators
+    role: Administrator
+
+### DDClient variables
+
+# Docker image to use for the container
+ddclient_image: linuxserver/ddclient:3.10.0
+
+
+### HAProxy variables
+
+# Docker image to use for the container
+haproxy_image: haproxy:2.6.5-alpine3.16
+
+
+### Wireguard variables
+
+# Docker image to use for the container
+wireguard_image: linuxserver/wireguard:1.0.20210914-alpine
+
+# Wireguard subdomain name, used in tandem with the oc_domain variable
+wireguard_subdomain: wireguard
+
+# Subnet used by Wireguard peers
+peer_subnet: 10.200.200.0
+
+# DNS server used by peers
+peer_dns: 192.168.100.1
+
+# Peer identifiers separated by a comma
+wireguard_peers: PC,Phone
+
+
+### Kubernetes cluster variables
+
+# Version of K3s to be installed
+k3s_version: v1.25.3+k3s1
+
+# Set to 1 to create a new cluster or 0 to keep the current one
+# Automatically changed upon cluster initialization
+cluster_init: 1

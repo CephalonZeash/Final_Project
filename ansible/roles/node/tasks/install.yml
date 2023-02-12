@@ -1,0 +1,92 @@
+- name: Run the installation script to add a node to the cluster
+  environment:
+    endpoint: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+    token: "{{ k3s_token }}"
+    version: "{{ k3s_version }}"
+  shell: |
+    systemctl status k3s-agent
+    if [[ $? == 4 ]]; then
+      sudo curl -sfL https://get.k3s.io | \
+      K3S_URL=https://$endpoint:6443 \
+      INSTALL_K3S_VERSION=$version \
+      K3S_TOKEN=$token \
+      sh -
+      if [[ $? == 1 ]]; then
+        /usr/local/bin/k3s-agent-uninstall.sh
+      fi
+    elif [[ $? == 3 ]]; then
+      /usr/local/bin/k3s-agent-uninstall.sh
+    fi
+  args:
+    executable: /bin/bash
+  tags:
+    - node
+
+- name: Determine the node's zone
+  set_fact:
+    zone: a
+  when: ansible_hostname | regex_search("^kza")
+  tags:
+    - node
+
+- name: Determine the node's zone
+  set_fact:
+    zone: b
+  when: ansible_hostname | regex_search("^kzb")
+  tags:
+    - node
+
+- name: Label the node
+  delegate_to: localhost
+  environment:
+    name: "{{ ansible_hostname }}"
+    zone: "{{ zone }}"
+  shell: |+
+    kubectl label nodes --overwrite $name zone=$zone
+  tags:
+    - node
+ 
+- name: Remove the host from the 'new' groups
+  delegate_to: localhost
+  lineinfile:
+    path: "../inventory.ini"
+    line: "{{ inventory_hostname }}"
+    state: absent
+  tags:
+    - node
+
+- name: Add the host to a standard group
+  delegate_to: localhost
+  lineinfile:
+    path: "../inventory.ini"
+    insertafter: "[^_]zone_{{ zone }}_node"
+    line: "{{ inventory_hostname }}"
+    state: present
+  tags:
+    - node
+
+- name: Add the node to the endpoint's config for http
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_http$"
+    line: "  server {{ ansible_hostname }} {{ inventory_hostname }}:80"
+    state: present
+  tags:
+    - node
+
+- name: Add the node to the endpoint's config for https
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_https$"
+    line: "  server {{ ansible_hostname }} {{ inventory_hostname }}:443"
+    state: present
+  tags:
+    - node
+
+- name: Reload the HAProxy config
+  delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
+  shell: docker kill -s HUP haproxy
+  tags: 
+    - node

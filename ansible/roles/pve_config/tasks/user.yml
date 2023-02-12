@@ -1,0 +1,67 @@
+- name: Create user groups
+  group:
+    name: "{{ item.username }}"
+  loop: "{{ users }}"
+  tags:
+    - pve_config
+    - pve_config_users
+
+- name: Manage users
+  user:
+    name: "{{ item.0.username }}"
+    password: "{{ item.0.password }}"
+    state: "{{ item.0.state | default('present') }}"
+    append: "{{ item.0.append | default('yes') }}"
+    groups: "{{ item.0.groups | default( item.0.username ) }}"
+    shell: "{{ item.0.shell | default('/bin/bash') }}"
+  loop: "{{ users | subelements('hosts', 'skip_missing=True') }}"
+  when: inventory_hostname == item.1 or "all" == item.1
+  tags:
+    - pve_config
+    - pve_config_users
+
+- name: Add users to Proxmox's realms
+  environment:
+    NAME: "{{ item.0.username }}"
+    FIRST_NAME: "{{ item.0.first_name }}"
+    LAST_NAME: "{{ item.0.last_name }}"
+    GROUP: "{{ item.0.pve_group }}"
+    REALM: "{{ item.0.realm }}"
+    ENABLE: "{{ item.0.enable }}"
+    APPEND: "{{ item.0.append }}"
+    EMAIL: "{{ item.0.email }}"
+  shell: |+
+    pveum useradd ${NAME}@${REALM}
+    pveum user modify ${NAME}@${REALM} \
+      --firstname "${FIRST_NAME}" \
+      --lastname "${LAST_NAME}" \
+      --append ${APPEND} \
+      --groups "${GROUP}" \
+      --email ${EMAIL} \
+      --enable ${ENABLE}
+  loop: "{{ pve_users | subelements('hosts', 'skip_missing=True') }}"
+  when: inventory_hostname == item.1 or "all" == item.1
+  tags:
+    - pve_config
+    - pve_config_users
+
+- name: Update authorized keys
+  authorized_key:
+    user: "{{ item.0.username }}"
+    key: "{{ item.1 }}"
+    state: "{{ item.0.state | default('present') }}"
+  loop: "{{ pve_authorized_keys | subelements('keys', 'skip_missing=True') }}"
+  tags:
+    - pve_config
+    - pve_config_users
+
+- name: Disable PasswordAuthentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regex: ^(# *)?PasswordAuthentication
+    line: PasswordAuthentication no
+  notify:
+    - Restart the OpenSSH server
+  tags:
+    - pve_config
+    - pve_config_users

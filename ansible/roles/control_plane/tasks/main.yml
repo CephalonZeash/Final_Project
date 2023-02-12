@@ -1,0 +1,82 @@
+# This role should be executed in serial to avoid conflicts and other issues with the installation process.
+
+- name: Include variable files
+  include_vars: 
+    dir: ../../../global_vars
+  tags:
+    - control_plane
+    - control_plane_cleanup
+    - control_plane_install
+    - control_plane_kubeconfig
+
+# - name: Set necessary variables
+#   set_fact:
+#     cp_hostname: "{{ ansible_hostname }}"
+#     cp_ip: "{{ inventory_hostname }}"
+#   tags:
+#     - control_plane
+#     - control_plane_cleanup
+#     - control_plane_install
+
+- name: Set the endpoint variable
+  set_fact:
+    new_endpoint_ip: "{{ groups['new_endpoint'].0 | default(omit) }}"
+  when: groups['new_endpoint'].0 is defined
+  tags:
+    - control_plane
+    - control_plane_cleanup
+    - control_plane_install
+    - control_plane_kubeconfig
+
+- name: Set the cleanup variable
+  set_fact:
+    cluster_cleanup: true
+  when: cluster_init == 1
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Set the cleanup variable
+  set_fact:
+    cluster_cleanup: false
+  when: cluster_init == 0
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Include cleanup related tasks
+  include_tasks: cleanup.yml
+  tags:
+    - control_plane
+    - control_plane_cleanup
+
+- name: Include K3s installation related tasks
+  include_tasks: install.yml
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Include kube config related tasks
+  include_tasks: kubeconfig.yml
+  tags:
+    - control_plane
+    - control_plane_kubeconfig
+
+- name: Change the cluster_init variable
+  set_fact:
+    cluster_init: 0
+  when: cluster_init == 1
+  tags:
+    - control_plane
+    - control_plane_install
+
+- name: Change the cluster_init variable locally so that other servers can join the cluster
+  lineinfile:
+    path: ../global_vars/main.yml
+    regex: cluster_init*
+    line: "cluster_init: 0"
+  delegate_to: localhost
+  become: false
+  tags:
+    - control_plane
+    - control_plane_install

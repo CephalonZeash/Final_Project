@@ -1,0 +1,46 @@
+- name: Check if there are faulty K3s installations
+  shell: |
+    systemctl status k3s-agent > /dev/null
+    if [[ $? = 0 ]]; then
+      echo no
+    else
+      echo yes
+    fi
+  args:
+    executable: /bin/bash
+  register: k3s_check_tmp
+  tags:
+    - node
+    - node_cleanup
+
+- name: Set the k3s_check variable
+  set_fact:
+    k3s_check: "{{ k3s_check_tmp['stdout'] }}"
+  tags:
+    - node
+    - node_cleanup
+
+- name: Remove the faulty node from the cluster
+  environment:
+    name: "{{ ansible_hostname }}"
+  shell: bash ../roles/node/files/delete-node.sh $name
+  delegate_to: localhost
+  become: false
+  ignore_errors: true
+  when: ( k3s_check is true ) and ( hostvars[groups['control_plane'].0 | default(groups['new_control_plane'].0)]['cluster_cleanup'] is false )
+  tags:
+    - node
+    - node_cleanup
+
+- name: Remove the previous K3s installation
+  shell: |+
+    if [[ -f /usr/local/bin/k3s-agent-uninstall.sh ]]; then
+      /usr/local/bin/k3s-agent-uninstall.sh
+    fi
+    sleep 5
+  args:
+    executable: /bin/bash
+  when: ( k3s_check is true ) or ( hostvars[groups['control_plane'].0 | default(groups['new_control_plane'].0)]['cluster_cleanup'] is true )
+  tags:
+    - node
+    - node_cleanup

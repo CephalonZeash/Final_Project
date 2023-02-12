@@ -1,0 +1,39 @@
+[OPTIONS]
+
+enable: 1
+policy_in: REJECT
+
+[RULES]
+
+IN ACCEPT -i vmbr0 -p tcp -dport 22 -log nolog
+IN ACCEPT -i vmbr0 -p tcp -dport 8006 -log nolog
+
+[group control_plane]
+IN ACCEPT -p tcp -dport 22
+IN ACCEPT -p tcp -dport 6443
+IN ACCEPT -p tcp -dport 2379
+IN ACCEPT -p tcp -dport 2380
+IN ACCEPT -p udp -dport 8472
+IN ACCEPT -p tcp -dport 10250
+
+[group node]
+IN ACCEPT -p tcp -dport 22
+IN ACCEPT -p tcp -dport 80
+IN ACCEPT -p tcp -dport 443
+IN ACCEPT -p udp -dport 8472
+IN ACCEPT -p tcp -dport 10250
+IN ACCEPT -p tcp -dport 3306
+
+[group endpoint]
+IN ACCEPT -p tcp -dport 22
+IN ACCEPT -p tcp -dport 80
+IN ACCEPT -p tcp -dport 443
+IN ACCEPT -p tcp -dport 6443
+IN ACCEPT -p udp -dport 51820
+
+[group storage]
+IN ACCEPT -p tcp -dport 22
+IN ACCEPT -p tcp -dport 2049
+IN ACCEPT -p udp -dport 2049
+IN ACCEPT -p tcp -dport 111
+IN ACCEPT -p udp -dport 111

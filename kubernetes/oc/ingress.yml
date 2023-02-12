@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: oc
+  namespace: oc
+  annotations:
+    kubernetes.io/ingress.class: traefik
+    cert-manager.io/cluster-issuer: letsencrypt
+    traefik.ingress.kubernetes.io/router.middlewares: oc-redirect@kubernetescrd
+spec:
+  tls:
+    - secretName: oc-tls
+      hosts:
+        - domain.com
+  rules:
+    - host: domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: oc
+                port:
+                  number: 8080

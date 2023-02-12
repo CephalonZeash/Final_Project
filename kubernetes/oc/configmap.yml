@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: oc
+data:
+  # SQL service name
+  SQL_SERVER: mysql

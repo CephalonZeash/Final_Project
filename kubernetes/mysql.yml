@@ -1,0 +1,83 @@
+---
+# Source: mysql-innodbcluster/templates/service_account_cluster.yaml
+#
+# This ServiceAccount is needed for the cluster to function properly
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql-sa
+  namespace: oc
+---
+# Source: mysql-innodbcluster/templates/cluster_secret.yaml
+#
+# This secret defines MySQL credentials that will be used when authenticating
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-cluster-secret
+  namespace: oc
+stringData:
+  rootUser: "root"
+  rootHost: "%"
+data:
+  rootPassword: "ecGFzc3dvcmQ=" # base64 encoded, in this case "password"
+---
+# Source: mysql-innodbcluster/templates/deployment_cluster.yaml
+#
+# InnoDB cluster definition, including both the MySQL instances as well as the MySQL routers
+apiVersion: mysql.oracle.com/v2
+kind: InnoDBCluster
+metadata:
+  name: mysql
+  namespace: oc
+spec:
+  instances: 2
+  tlsUseSelfSigned: true
+  router:
+    instances: 2
+    podSpec:
+      name: mysql-router
+      resources:
+        requests:
+          cpu: 30m
+          memory: 30Mi
+        limits:
+          cpu: 90m
+          memory: 90Mi
+      # topologySpreadConstraints:
+      # - labelSelector:
+      #     matchLabels:
+      #       name: mysql-router
+      #   maxSkew: 1
+      #   topologyKey: zone
+      #   whenUnsatisfiable: DoNotSchedule
+  secretName: mysql-cluster-secret
+  imagePullPolicy : IfNotPresent
+  baseServerId: 1000
+  version: 8.0.30
+  serviceAccountName: mysql-sa
+  datadirVolumeClaimTemplate:
+    storageClassName: "nfs-sc"
+    accessModes: [ "ReadWriteMany" ]
+    resources:
+      requests:
+        storage: "5Gi"  
+  podSpec: 
+    podLabels: 
+      name: mysql
+    containers:
+    - name: mysql
+      resources:
+        requests:
+          cpu: 200m
+          memory: 700Mi
+        limits:
+          cpu: 1000m
+          memory: 1400Mi
+    # topologySpreadConstraints:
+    # - labelSelector:
+    #     matchLabels:
+    #       name: mysql
+    #   maxSkew: 1
+    #   topologyKey: zone
+    #   whenUnsatisfiable: DoNotSchedule

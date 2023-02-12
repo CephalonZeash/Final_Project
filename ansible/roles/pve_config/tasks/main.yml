@@ -1,0 +1,19 @@
+- name: Include variable file
+  include_vars: 
+    dir: ../../../global_vars
+  tags:
+    - pve_config
+    - pve_config_general
+    - pve_config_users
+
+- name: Include PVE general configuration related tasks
+  include_tasks: general.yml
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Include user configuration tasks
+  include_tasks: user.yml
+  tags:
+    - pve_config
+    - pve_config_users

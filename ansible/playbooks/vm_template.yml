@@ -1,0 +1,8 @@
+- name: Set up a VM template
+  hosts: pve
+  remote_user: root
+  gather_facts: false
+  roles:
+    - ../roles/vm_template
+  tags:
+    - vm_template

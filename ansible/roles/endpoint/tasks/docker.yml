@@ -1,0 +1,33 @@
+- name: Update repositories and install dependencies
+  apt:
+    update_cache: true
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+    state: latest
+  tags:
+    - endpoint
+    - endpoint_docker
+
+- name: Add Docker's GPG key and repository
+  shell: |+
+    sudo mkdir /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/debian/gpg | sudo gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker.gpg
+    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/debian $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  tags:
+    - endpoint
+    - endpoint_docker
+
+- name: Update repositories and install the latest version of Docker
+  apt:
+    update_cache: true
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-compose-plugin
+  tags:
+    - endpoint
+    - endpoint_docker

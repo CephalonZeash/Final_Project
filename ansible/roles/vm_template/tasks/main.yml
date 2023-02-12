@@ -1,0 +1,30 @@
+- name: Download disk image
+  get_url:
+    url: https://cdimage.debian.org/cdimage/cloud/bullseye/20220816-1109/debian-11-genericcloud-amd64-20220816-1109.qcow2
+    dest: /root/debian-11-amd64.qcow2
+    force: yes
+  tags:
+    - vm_template
+
+- name: Delete previous template
+  shell: |+
+    qm destroy 100
+  ignore_errors: true
+  tags:
+    - vm_template
+
+- name: Create template VM
+  shell: |+
+    qm create 100 \
+      --name debian-template
+    qm importdisk 100 /root/debian-11-amd64.qcow2 local -format qcow2
+    qm set 100 \
+      --scsihw virtio-scsi-pci \
+      --scsi0 /var/lib/vz/images/100/vm-100-disk-0.qcow2 \
+      --boot c \
+      --serial0 socket
+    qm resize 100 scsi0 +14G
+    qm template 100
+    rm -f /root/debain-11-amd64.qcow2
+  tags:
+    - vm_template

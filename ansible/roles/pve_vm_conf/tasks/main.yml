@@ -1,0 +1,29 @@
+- name: Move the firewall configuration to a temporary location
+  template:
+    src: "{{ vm_type }}.j2"
+    dest: "/root/{{ vmid }}.fw"
+  tags:
+    - pve_vm_conf
+
+- name: Add the firewall configuration to the VM
+  environment:
+    vmid: "{{ vmid }}"
+  shell:
+    mv /root/$vmid.fw /etc/pve/firewall/
+  tags:
+    - pve_vm_conf
+
+- name: Enable the QEMU guest agent
+  environment:
+    vmid: "{{ vmid }}"
+  shell: |
+    qm set $vmid --agent 1
+    while ! qm reboot $vmid
+    do
+      sleep 2
+    done
+    sleep 5
+  args:
+    executable: /bin/bash
+  tags:
+    - pve_vm_conf

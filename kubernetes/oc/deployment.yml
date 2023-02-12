@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oc
+  namespace: oc
+  labels:
+    app: oc
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: oc
+  template:
+    metadata:
+      labels:
+        app: oc
+    spec:
+      containers:
+        - name: oc
+          image: speeedyyyy/onlinecompiler2:1.0.29
+          ports:
+            - containerPort: 80
+          envFrom:
+            - configMapRef:
+                name: oc
+            - secretRef:
+                name: oc
+          volumeMounts:
+            - name: keys
+              mountPath: /app/keys
+          resources:
+            requests:
+              # Additional CPU will speed up compiling
+              cpu: 100m
+              memory: 200Mi
+            limits:
+              cpu: 200m
+              memory: 300Mi
+      volumes:
+        - name: keys
+          persistentVolumeClaim:
+            claimName: oc-keys
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: zone
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              name: oc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: oc
+  namespace: oc
+  annotations:
+    # Required for sticky sessions to work
+    traefik.ingress.kubernetes.io/service.sticky.cookie: "true"
+spec:
+  selector:
+    app: oc
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80

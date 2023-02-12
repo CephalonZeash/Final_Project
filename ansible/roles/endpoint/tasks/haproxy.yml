@@ -1,0 +1,151 @@
+- name: Create the HAProxy config directory
+  file:
+    path: /etc/haproxy
+    state: directory
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+# This is where you should edit the HAProxy config, instead of doing it on the server.
+- name: Write the HAProxy config
+  shell: |+
+    cat << EOF | tee /etc/haproxy/haproxy.cfg > /dev/null
+
+    defaults
+      log global
+      mode tcp
+      option tcplog
+      timeout client 300s
+      timeout server 300s
+      timeout connect 3s
+      timeout http-request 3s
+    global
+      log stdout format raw daemon debug
+    
+    backend kubernetes_control_planes
+      balance roundrobin
+      default-server check maxconn 20 check-ssl verify none
+    frontend kubernetes_control_planes
+      bind :6443
+      default_backend kubernetes_control_planes
+    
+    backend kubernetes_nodes_http
+      balance roundrobin
+      default-server check
+    frontend kubernetes_nodes_http
+      bind :80
+      default_backend kubernetes_nodes_http
+    
+    backend kubernetes_nodes_https
+      balance roundrobin
+      default-server check check-ssl verify none
+    frontend kubernetes_nodes_https
+      bind :443
+      default_backend kubernetes_nodes_https
+
+    EOF
+  args:
+    executable: /bin/bash
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Create the HAProxy container using Docker Compose
+  environment:
+    image: "{{ haproxy_image }}"
+    timezone: "{{ timezone }}"
+  shell: |+
+    if [[ ! $(docker ps | grep haproxy) ]]; then
+    mkdir -p /opt/docker_compose/haproxy
+    cd /opt/docker_compose/haproxy
+    docker compose down
+    cat << EOF | sudo tee docker-compose.yml > /dev/null
+    
+    version: "3"
+    
+    services:
+      haproxy:
+        container_name: haproxy
+        image: $image
+        environment:
+          TZ: $timezone
+        volumes:
+          - /etc/haproxy/:/usr/local/etc/haproxy:ro
+        ports:
+          - 80:80/tcp
+          - 443:443/tcp
+          - 6443:6443/tcp
+        hostname: haproxy-0
+        sysctls:
+          - net.ipv4.ip_unprivileged_port_start=0
+        restart: unless-stopped
+       
+    EOF
+    docker compose up -d
+    fi
+  args:
+    executable: /bin/bash
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add existing control planes to the config
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_control_planes$"
+    line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:6443"
+    state: present
+  loop: "{{ groups['control_plane'] }}"
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add existing zone A nodes to the http config
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_http$"
+    line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:80"
+    state: present
+  loop: "{{ groups['zone_a_node'] }}"
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add existing zone A nodes to the https config
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_https$"
+    line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:443"
+    state: present
+  loop: "{{ groups['zone_a_node'] }}"
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add existing zone B nodes to the http config
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_http$"
+    line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:80"
+    state: present
+  loop: "{{ groups['zone_b_node'] }}"
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add existing zone B nodes to the https config
+  lineinfile:
+    path: /etc/haproxy/haproxy.cfg
+    insertbefore: "frontend kubernetes_nodes_https$"
+    line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:443"
+    state: present
+  loop: "{{ groups['zone_b_node'] }}"
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Reload the HAProxy config
+  shell: docker kill -s HUP haproxy
+  tags:
+    - endpoint
+    - endpoint_haproxy

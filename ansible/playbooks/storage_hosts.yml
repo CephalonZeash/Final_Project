@@ -1,0 +1,18 @@
+# This playbook requires the "host_type", "host_ip" and "host_state" variables defined with the --extra-vars flag
+
+- name: Edit exports file for newly created/destroyed VM
+  hosts: all
+  remote_user: root
+  gather_facts: false
+  tasks:
+    - name: Add or remove line for specified host
+      ansible.builtin.lineinfile:
+        path: /etc/exports
+        insertafter: EOF
+        line: "/var/nfs/{{ host_type }} {{ host_ip }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+        state: "{{ host_state }}"
+
+    - name: Update exports
+      shell: exportfs -a
+  tags:
+    - storage_hosts

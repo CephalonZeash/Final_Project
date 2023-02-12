@@ -1,0 +1,43 @@
+- name: Edit global bash settings
+  template:
+    src: bash.bashrc.j2
+    dest: /etc/bash.bashrc
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Create Proxmox groups and define their permissions
+  environment:
+    NAME: "{{ item.name }}"
+    COMMENT: "{{ item.comment }}"
+    ROLE: "{{ item.role }}"
+  shell: |
+    pveum group add $NAME -comment "$COMMENT"
+    pveum acl modify / -group $NAME -role $ROLE
+  loop: "{{ pve_groups }}"
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Create the firewall directory
+  file:
+    path: /etc/pve/firewall
+    state: directory
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Add security groups to a temporary file
+  template:
+    src: cluster.fw.j2
+    dest: /tmp/cluster.fw
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Add security groups to the cluster config
+  shell: |
+    mv /tmp/cluster.fw /etc/pve/firewall/
+  tags:
+    - pve_config
+    - pve_config_general

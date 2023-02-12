@@ -1,0 +1,65 @@
+- name: Create the DDClient config directory
+  file:
+    path: /etc/ddclient
+    state: directory
+  tags:
+    - endpoint
+    - endpoint_ddclient
+
+
+# Change this config depending on how your domain registar handles Dynamic DNS, in this case I'm using Namecheap
+- name: Write the DDClient config
+  environment: 
+    domain: "{{ oc_domain }}"
+    dd_password: "{{ dd_password }}"
+    wireguard_subdomain: "{{ wireguard_subdomain }}"
+  shell: |+
+    cat << EOF | tee /etc/ddclient/ddclient.conf > /dev/null
+    
+    use=web, web=dynamicdns.park-your-domain.com/getip
+    protocol=namecheap
+    server=dynamicdns.park-your-domain.com
+    login=$domain
+    password=$dd_password
+    @, $wireguard_subdomain
+    
+    EOF
+  args:
+    executable: /bin/bash
+  tags:
+    - endpoint
+    - endpoint_ddclient
+
+- name: Create the DDClient container using Docker Compose
+  environment:
+    image: "{{ ddclient_image }}"
+    timezone: "{{ timezone }}"
+  shell: |+
+    if [[ ! $(docker ps | grep ddclient) ]]; then
+    mkdir -p /opt/docker_compose/ddclient
+    cd /opt/docker_compose/ddclient
+    docker compose down
+    cat << EOF | sudo tee docker-compose.yml > /dev/null
+    version: "3"
+    
+    services:
+      ddclient:
+        container_name: ddclient
+        image: $image
+        environment:
+          PUID: 1000
+          PGID: 1000
+          TZ: $timezone
+        volumes:
+          - /etc/ddclient/:/config:ro
+        hostname: ddclient-0
+        restart: unless-stopped
+
+    EOF
+    docker compose up -d
+    fi
+  args:
+    executable: /bin/bash
+  tags:
+    - endpoint
+    - endpoint_ddclient

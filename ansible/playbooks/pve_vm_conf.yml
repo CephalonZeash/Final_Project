@@ -1,0 +1,8 @@
+# This playbook requires the "vmid" and "vm_type" variables defined with the --extra-vars flag
+
+- name: Configure PVE related settings for a particular VM
+  hosts: all
+  remote_user: root
+  gather_facts: false
+  roles:
+    - ../roles/pve_vm_conf
