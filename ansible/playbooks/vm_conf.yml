@@ -1,7 +1,6 @@
 # This playbook should be run once PVE has been fully configured and a VM template has been created. 
 # It uses groups specified in inventory.ini to configure specified hosts and create a fully functional Kubernetes cluster from scratch alongside a VPN, external load balancer and centralized storage server.
 # List of tags:
-#  - include_vars
 #  - basic_conf
 #  - basic_conf_user
 #  - basic_conf_other
@@ -19,10 +18,27 @@
 #  - node_cleanup
 #  - node_install
 
+- name: Gather facts
+  hosts: all
+  remote_user: root
+  gather_facts: true
+  tags:
+    - basic_conf
+    - basic_conf_user
+    - basic_conf_other
+    - endpoint
+    - endpoint_haproxy
+    - control_plane
+    - control_plane_cleanup
+    - control_plane_install
+    - node
+    - node_cleanup
+    - node_install
+
 - name: Manage general configurations
   hosts: all, !pve
   remote_user: root
-  gather_facts: true
+  gather_facts: false
   roles:
     - ../roles/basic_conf
   tags:
@@ -107,7 +123,7 @@
 - name: Configure the endpoint
   hosts: new_endpoint, endpoint
   remote_user: root
-  gather_facts: true
+  gather_facts: false
   roles:
     - ../roles/endpoint
   tags:
@@ -117,7 +133,7 @@
   hosts: new_control_plane, control_plane
   remote_user: root
   serial: 1
-  gather_facts: true
+  gather_facts: false
   roles:
     - "../roles/control_plane"
   tags:

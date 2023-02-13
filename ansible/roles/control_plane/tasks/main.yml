@@ -9,15 +9,6 @@
     - control_plane_install
     - control_plane_kubeconfig
 
-# - name: Set necessary variables
-#   set_fact:
-#     cp_hostname: "{{ ansible_hostname }}"
-#     cp_ip: "{{ inventory_hostname }}"
-#   tags:
-#     - control_plane
-#     - control_plane_cleanup
-#     - control_plane_install
-
 - name: Set the endpoint variable
   set_fact:
     new_endpoint_ip: "{{ groups['new_endpoint'].0 | default(omit) }}"

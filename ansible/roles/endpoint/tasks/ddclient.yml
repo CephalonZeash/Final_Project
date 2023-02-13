@@ -7,10 +7,9 @@
     - endpoint_ddclient
 
 
-# Change this config depending on how your domain registar handles Dynamic DNS, in this case I'm using Namecheap
+# Change this config depending on how your domain registar handles Dynamic DNS
 - name: Write the DDClient config
   environment: 
-    domain: "{{ oc_domain }}"
     dd_password: "{{ dd_password }}"
     wireguard_subdomain: "{{ wireguard_subdomain }}"
   shell: |+
@@ -19,7 +18,7 @@
     use=web, web=dynamicdns.park-your-domain.com/getip
     protocol=namecheap
     server=dynamicdns.park-your-domain.com
-    login=$domain
+    login=online-compiler.me
     password=$dd_password
     @, $wireguard_subdomain
     

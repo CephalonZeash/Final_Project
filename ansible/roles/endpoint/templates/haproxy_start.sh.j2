@@ -1,0 +1,7 @@
+#!/bin/bash
+
+sleep 10
+
+if [[ ! $(docker ps | grep haproxy) ]]; then
+    docker start haproxy
+fi
