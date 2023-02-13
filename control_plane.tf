@@ -75,7 +75,7 @@ resource "proxmox_vm_qemu" "control_plane" {
 }
 
 # This resource ensures control planes are destroyed cleanly.
-resource "null_resource" "control_plane-pre-destroy" {
+resource "null_resource" "control_plane_pre_destroy" {
   count = "${var.cp_count}"
 
   triggers = {

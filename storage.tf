@@ -76,7 +76,7 @@ resource "proxmox_vm_qemu" "storage" {
 }
 
 # This resource ensures the storage server is removed from the inventory in case of destruction.
-resource "null_resource" "storage-pre-destroy" {
+resource "null_resource" "storage_pre_destroy" {
   triggers = {
     vmid       = "${proxmox_vm_qemu.storage.vmid}"
     storage_ip = "${var.storage_ip}"

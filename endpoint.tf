@@ -72,7 +72,7 @@ resource "proxmox_vm_qemu" "endpoint" {
 }
 
 # This resource ensures the endpoint are destroyed cleanly.
-resource "null_resource" "endpoint-pre-destroy" {
+resource "null_resource" "endpoint_pre_destroy" {
   triggers = {
     vmid        = "${proxmox_vm_qemu.endpoint.vmid}"
     storage_ip  = "${var.storage_ip}"
