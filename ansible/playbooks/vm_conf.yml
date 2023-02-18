@@ -59,6 +59,10 @@
   remote_user: root
   gather_facts: false
   tasks:
+    - name: Clear the previous /etc/exports file
+      shell: |+
+        truncate -s 0 /etc/exports
+ 
     - name: Add permissions for the new endpoint
       ansible.builtin.lineinfile:
         path: "/etc/exports"
