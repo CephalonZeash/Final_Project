@@ -20,8 +20,6 @@ ssh-keygen -t rsa -b 4096
 
 - This key will be used throughout the installation
 
-- All role directories should have an empty vars/ directory
-
 ## Installing Proxmox VE
 
 ### Installing Debian 11 Bullseye
