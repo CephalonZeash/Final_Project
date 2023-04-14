@@ -3,9 +3,11 @@ kind: Deployment
 metadata:
   name: oc
   namespace: oc
+  # Labels are used throughout the Deployment, Service and other elements to connect them all together
   labels:
     app: oc
 spec:
+  # Default number of replicas
   replicas: 3
   selector:
     matchLabels:
@@ -17,14 +19,18 @@ spec:
     spec:
       containers:
         - name: oc
+          # Desired image to download
           image: speeedyyyy/onlinecompiler2:1.0.29
+          # Exposed port
           ports:
             - containerPort: 80
+          # Reference for ConfigMap and Secret resources
           envFrom:
             - configMapRef:
                 name: oc
             - secretRef:
                 name: oc
+          # Simple volume for storing the DB encryption key
           volumeMounts:
             - name: keys
               mountPath: /app/keys
@@ -40,6 +46,7 @@ spec:
         - name: keys
           persistentVolumeClaim:
             claimName: oc-keys
+      # This section further restricts Kubernetes from unevenly spreading our Pods
       topologySpreadConstraints:
         - maxSkew: 1
           topologyKey: zone
@@ -60,6 +67,7 @@ spec:
   selector:
     app: oc
   ports:
+    # Bind Pod's exposed port 80 to port 8080 on the Service
     - protocol: TCP
       port: 8080
       targetPort: 80

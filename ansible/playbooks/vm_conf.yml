@@ -1,10 +1,13 @@
 # This playbook should be run once PVE has been fully configured and a VM template has been created. 
 # It uses groups specified in inventory.ini to configure specified hosts and create a fully functional Kubernetes cluster from scratch alongside a VPN, external load balancer and centralized storage server.
 # List of tags:
+#  - always
 #  - basic_conf
 #  - basic_conf_user
 #  - basic_conf_other
 #  - storage
+#  - storage_install
+#  - storage_permissions
 #  - endpoint
 #  - endpoint_docker
 #  - endpoint_ddclient
@@ -23,19 +26,9 @@
   remote_user: root
   gather_facts: true
   tags:
-    - basic_conf
-    - basic_conf_user
-    - basic_conf_other
-    - endpoint
-    - endpoint_haproxy
-    - control_plane
-    - control_plane_cleanup
-    - control_plane_install
-    - node
-    - node_cleanup
-    - node_install
+    - always
 
-- name: Manage general configurations
+- name: Manage general configs
   hosts: all, !pve
   remote_user: root
   gather_facts: false
@@ -43,84 +36,13 @@
     - ../roles/basic_conf
   tags:
     - basic_conf
-    - basic_conf_other
 
 - name: Configure the storage server
-  hosts: new_storage
+  hosts: new_storage,storage
   remote_user: root
   gather_facts: false
   roles:
     - ../roles/storage
-  tags:
-    - storage
-
-- name: Configure NFS permissions
-  hosts: new_storage, storage
-  remote_user: root
-  gather_facts: false
-  tasks:
-    - name: Clear the previous /etc/exports file
-      shell: |+
-        truncate -s 0 /etc/exports
- 
-    - name: Add permissions for the new endpoint
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['new_endpoint'] }}"
-
-    - name: Add permissions for the already existing endpoint
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['endpoint'] }}"
-
-    - name: Add permissions for new control planes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['new_control_plane'] }}"
-
-    - name: Add permissions for already existing control planes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['control_plane'] }}"
-
-    - name: Add permissions for new zone A nodes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['new_zone_a_node'] }}"
-
-    - name: Add permissions for new zone A nodes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['zone_a_node'] }}"
-
-    - name: Add permissions for new zone B nodes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['new_zone_b_node'] }}"
-
-    - name: Add permissions for new zone B nodes
-      ansible.builtin.lineinfile:
-        path: "/etc/exports"
-        insertafter: EOF
-        line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
-      loop: "{{ groups['zone_b_node'] }}"
-
-    - name: Refresh the export configuration
-      ansible.builtin.shell: exportfs -a
   tags:
     - storage
 
@@ -139,7 +61,7 @@
   serial: 1
   gather_facts: false
   roles:
-    - "../roles/control_plane"
+    - ../roles/control_plane
   tags:
     - control_plane
 
@@ -147,8 +69,8 @@
   hosts: new_zone_a_node, zone_a_node, new_zone_b_node, zone_b_node
   remote_user: root
   serial: 1
-  gather_facts: true
+  gather_facts: false
   roles:
-    - "../roles/node"
+    - ../roles/node
   tags:
     - node

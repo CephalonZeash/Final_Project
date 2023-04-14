@@ -1,0 +1,45 @@
+- name: Install the NFS server
+  apt:
+    update_cache: true
+    name: "nfs-kernel-server={{ nfs_server_version }}"
+  tags:
+    - storage
+    - storage_install
+
+- name: Create the NFS root share directory
+  file:
+    path: /var/nfs
+    state: directory
+    mode: 0701
+  tags:
+    - storage
+    - storage_install
+
+- name: Create share directories
+  command:
+    cmd: "mkdir -p /var/nfs/{{ item }}"
+  loop: "{{ share_dirs }}"
+  tags:
+    - storage
+    - storage_install
+
+- name: Remove the host from the 'new_storage' group
+  delegate_to: localhost
+  lineinfile:
+    path: ../inventory.ini
+    line: "{{ inventory_hostname }}"
+    state: absent
+  tags:
+    - storage
+    - storage_install
+
+- name: Add the host to the 'storage' group
+  delegate_to: localhost
+  lineinfile:
+    path: ../inventory.ini
+    insertafter: "[^_]storage"
+    line: "{{ inventory_hostname }}"
+    state: present
+  tags:
+    - storage
+    - storage_install

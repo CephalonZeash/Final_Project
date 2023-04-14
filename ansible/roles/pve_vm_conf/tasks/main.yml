@@ -1,15 +1,14 @@
-- name: Move the firewall configuration to a temporary location
+- name: Move the firewall config to a temporary location
   template:
     src: "{{ vm_type }}.j2"
     dest: "/root/{{ vmid }}.fw"
   tags:
     - pve_vm_conf
 
-- name: Add the firewall configuration to the VM
+- name: Add the firewall config to the VM
   environment:
     vmid: "{{ vmid }}"
-  shell:
-    mv /root/$vmid.fw /etc/pve/firewall/
+  shell: mv /root/$vmid.fw /etc/pve/firewall/
   tags:
     - pve_vm_conf
 

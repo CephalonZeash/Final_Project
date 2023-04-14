@@ -1,12 +1,10 @@
 # This role should be executed in serial to avoid conflicts and other issues with the installation process.
 
 - name: Include variable files
-  include_vars: 
+  include_vars:
     dir: ../../../global_vars
   tags:
-    - node
-    - node_cleanup
-    - node_install
+    - always
 
 - name: Set the endpoint variable
   set_fact:

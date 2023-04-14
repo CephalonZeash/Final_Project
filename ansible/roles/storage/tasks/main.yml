@@ -1,59 +1,17 @@
 - name: Include variable files
-  include_vars: 
+  include_vars:
     dir: ../../../global_vars
   tags:
-    - storage
+    - always
 
-- name: Install dependencies
-  apt:
-    update_cache: true
-    name:
-      - nfs-kernel-server
+- name: Include NFS installation related tasks
+  include_tasks: install.yml
   tags:
     - storage
+    - storage_install
 
-- name: Create the nfs root share directory
-  file:
-    path: /var/nfs
-    state: directory
-    mode: 701
+- name: Include NFS permissions related tasks
+  include_tasks: permissions.yml
   tags:
     - storage
-
-- name: Create share directories
-  shell: |
-    mkdir -p /var/nfs/k8s
-    mkdir -p /var/nfs/endpoint/wireguard_config
-  tags:
-    - storage
-  
-- name: Clear the previous /etc/exports file
-  shell: |
-    truncate -s 0 /etc/exports
-  tags:
-    - storage
-
-- name: Refresh the export configuration
-  shell: |
-    exportfs -a
-  tags:
-    - storage
-
-- name: Remove the host from the 'new_storage' group
-  delegate_to: localhost
-  lineinfile:
-    path: "../inventory.ini"
-    line: "{{ inventory_hostname }}"
-    state: absent
-  tags:
-    - storage
-
-- name: Add the host to the 'storage' group
-  delegate_to: localhost
-  lineinfile:
-    path: "../inventory.ini"
-    insertafter: "[^_]storage"
-    line: "{{ inventory_hostname }}"
-    state: present
-  tags:
-    - storage
+    - storage_permissions

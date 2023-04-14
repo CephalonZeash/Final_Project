@@ -10,19 +10,22 @@ data:
     kind: "DeschedulerPolicy"
     evictLocalStoragePods: true
     strategies:
+      # Try to spread out Pod duplicates as evenly as possible
       "RemoveDuplicates":
-         enabled: true
+        enabled: true
+      # Automatically remove pods which violate Pod Anti Affinity
       "RemovePodsViolatingInterPodAntiAffinity":
-         enabled: true
+        enabled: true
+      # Spread out Pods in order to achieve as even resource usage between Nodes as possible
       "LowNodeUtilization":
-         enabled: true
-         params:
-           nodeResourceUtilizationThresholds:
-             thresholds:
-               "cpu" : 20
-               "memory": 20
-               "pods": 20
-             targetThresholds:
-               "cpu" : 50
-               "memory": 50
-               "pods": 50
+        enabled: true
+        params:
+          nodeResourceUtilizationThresholds:
+            # If a Node's resource usage is below 'thresholds', it is considered under utilized
+            thresholds:
+              "cpu" : 20
+              "memory": 20
+            # If a Node's resource usage is above 'targetThresholds', it is considered over utilized
+            targetThresholds:
+              "cpu" : 50
+              "memory": 50

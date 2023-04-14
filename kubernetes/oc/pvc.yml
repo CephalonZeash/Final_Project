@@ -1,3 +1,4 @@
+# Simple definition of a Persistent Volume Claim, using the nfs-subdir-provisioner Storage Class
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -5,9 +6,12 @@ metadata:
   annotations:
     nfs.io/storage-path: "oc-keys"
 spec:
-  storageClassName: nfs-sc
+  # Name of the Storage Class
+  storageClassName: nfs-subdir-provisioner
+  # Pod permissions, in this case the PV can be mounted as read-write by multiple nodes
   accessModes:
     - ReadWriteMany
+  # Desired storage capacity
   resources:
     requests:
       storage: 50Mi

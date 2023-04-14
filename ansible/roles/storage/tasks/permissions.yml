@@ -1,0 +1,91 @@
+- name: Clear the exports file
+  shell: truncate -s 0 /etc/exports
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for the new endpoint
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['new_endpoint'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for the already existing endpoint
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/endpoint {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['endpoint'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for new control planes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['new_control_plane'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for already existing control planes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['control_plane'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for new zone A nodes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['new_zone_a_node'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for already existing zone A nodes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['zone_a_node'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Add permissions for new zone B nodes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['new_zone_b_node'] }}"
+  tags:
+    - storage
+    - storage_permissions
+    
+- name: Add permissions for already existing zone B nodes
+  lineinfile:
+    path: /etc/exports
+    insertafter: EOF
+    line: "/var/nfs/k8s {{ item }}(rw,sync,no_subtree_check,anonuid=0,anongid=0)"
+  loop: "{{ groups['zone_b_node'] }}"
+  tags:
+    - storage
+    - storage_permissions
+
+- name: Update export
+  shell: exportfs -a
+  tags:
+    - storage
+    - storage_permissions

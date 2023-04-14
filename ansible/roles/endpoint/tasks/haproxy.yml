@@ -1,4 +1,13 @@
-# This is where you should edit the HAProxy config, instead of doing it on the server.
+- name: Create the HAProxy config directory
+  file:
+    path: /etc/haproxy
+    state: directory
+    mode: 0755
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+# This is where you should edit the HAProxy config, instead of doing it on the server. Run the vm_conf.yml playbook to apply any changes you make.
 - name: Write the HAProxy config
   shell: |+
     cat << EOF | tee /etc/haproxy/haproxy.cfg > /dev/null
@@ -49,6 +58,7 @@
   shell: |+
     if [[ ! $(docker ps | grep haproxy) ]]; then
     mkdir -p /opt/docker_compose/haproxy
+    chmod -R 0700 /opt/docker_compose
     cd /opt/docker_compose/haproxy
     docker compose down
     cat << EOF | sudo tee docker-compose.yml > /dev/null
@@ -81,16 +91,25 @@
     - endpoint
     - endpoint_haproxy
 
-- name: Create a script for starting HAProxy on boot
+- name: Create the scripts directory
+  file:
+    path: /root/scripts
+    state: directory
+    mode: 0700
+  tags:
+    - endpoint
+    - endpoint_haproxy
+
+- name: Add a script for starting HAProxy on boot
   template:
     src: haproxy_start.sh.j2
     dest: /root/scripts/haproxy_start.sh
-    mode: 700
+    mode: 0700
   tags:
     - endpoint
     - endpoint_haproxy
   
-- name: Add a cronjob for the HAProxy script
+- name: Add a cronjob for the HAProxy startup script
   cron:
     name: Start HAProxy on boot
     special_time: reboot
@@ -103,7 +122,7 @@
 - name: Add existing control planes to the config
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
-    insertbefore: "frontend kubernetes_control_planes$"
+    insertbefore: frontend kubernetes_control_planes$
     line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:6443"
     state: present
   loop: "{{ groups['control_plane'] }}"
@@ -114,7 +133,7 @@
 - name: Add existing zone A nodes to the http config
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
-    insertbefore: "frontend kubernetes_nodes_http$"
+    insertbefore: frontend kubernetes_nodes_http$
     line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:80"
     state: present
   loop: "{{ groups['zone_a_node'] }}"
@@ -125,7 +144,7 @@
 - name: Add existing zone A nodes to the https config
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
-    insertbefore: "frontend kubernetes_nodes_https$"
+    insertbefore: frontend kubernetes_nodes_https$
     line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:443"
     state: present
   loop: "{{ groups['zone_a_node'] }}"
@@ -136,7 +155,7 @@
 - name: Add existing zone B nodes to the http config
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
-    insertbefore: "frontend kubernetes_nodes_http$"
+    insertbefore: frontend kubernetes_nodes_http$
     line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:80"
     state: present
   loop: "{{ groups['zone_b_node'] }}"
@@ -147,7 +166,7 @@
 - name: Add existing zone B nodes to the https config
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
-    insertbefore: "frontend kubernetes_nodes_https$"
+    insertbefore: frontend kubernetes_nodes_https$
     line: "  server {{ hostvars[item]['ansible_hostname'] }} {{ item }}:443"
     state: present
   loop: "{{ groups['zone_b_node'] }}"

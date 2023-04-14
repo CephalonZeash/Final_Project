@@ -3,7 +3,7 @@ resource "proxmox_vm_qemu" "zone_b_node" {
   
   name        = "kzb-${count.index}"
   vmid        = "${600 + count.index}"
-  target_node = "pve-01"
+  target_node = "${var.node_name}"
   desc        = "Kubernetes zone B node."
   
   clone   = "debian-template" 
@@ -23,7 +23,7 @@ resource "proxmox_vm_qemu" "zone_b_node" {
   }
   
   os_type                 = "cloud-init"
-  cloudinit_cdrom_storage = "local"
+  cloudinit_cdrom_storage = "${var.disk_storage}"
   ciuser                  = "root"
   sshkeys                 = "${var.ssh_key}"
   nameserver              = "${var.nameserver}"
@@ -47,17 +47,17 @@ resource "proxmox_vm_qemu" "zone_b_node" {
     when = create
     
     environment = {
-      VMID   = "${self.vmid}"
-      PVE_IP = "${var.proxmox_ip}"
-      VM_IP  = "${var.network_prefix}${var.zone_b_node_starting_ip + count.index}"
+      vmid   = "${self.vmid}"
+      pve_ip = "${var.proxmox_ip}"
+      vm_ip  = "${var.network_prefix}${var.zone_b_node_starting_ip + count.index}"
     }
     
     # This set of commands runs when a VM is running and reachable using SSH.
     # They only prepare the VM for further configuration.
     command = <<EOT
       cd ansible/
-      ansible-playbook -i $PVE_IP, playbooks/pve_vm_conf.yml --extra-vars="vmid=$VMID vm_type=node"
-      ansible-playbook playbooks/inventory.yml --extra-vars="host_group=new_zone_b_node host_ip=$VM_IP host_state=present"
+      ansible-playbook -i $pve_ip, playbooks/pve_vm_conf.yml --extra-vars="vmid=$vmid vm_type=node"
+      ansible-playbook playbooks/inventory.yml --extra-vars="host_group=new_zone_b_node host_ip=$vm_ip host_state=present"
     EOT
   }
 
@@ -92,19 +92,19 @@ resource "null_resource" "zone_b_node_pre_destroy" {
     when = destroy
 
     environment = {
-      NAME        = "${self.triggers.name}"
-      STORAGE_IP  = "${self.triggers.storage_ip}"
-      ENDPOINT_IP = "${self.triggers.endpoint_ip}"
-      VM_IP       = "${self.triggers.network_prefix}${self.triggers.zone_b_node_starting_ip + count.index}"
+      name        = "${self.triggers.name}"
+      storage_ip  = "${self.triggers.storage_ip}"
+      endpoint_ip = "${self.triggers.endpoint_ip}"
+      vm_ip       = "${self.triggers.network_prefix}${self.triggers.zone_b_node_starting_ip + count.index}"
     }
 
     command = <<EOT
         cd ansible/
-        ansible-playbook -i $ENDPOINT_IP, playbooks/endpoint_hosts.yml --extra-vars="host_ip=$VM_IP host_type=node host_name=$NAME host_state=absent"
-        kubectl drain $NAME --ignore-daemonsets --delete-emptydir-data
-        kubectl delete node $NAME
-        ansible-playbook -i $STORAGE_IP, playbooks/storage_hosts.yml --extra-vars="host_ip=$VM_IP host_type=k8s host_state=absent"
-        ansible-playbook playbooks/inventory.yml --extra-vars="host_group=zone_b_node host_ip=$VM_IP host_state=absent"
+        ansible-playbook -i $endpoint_ip, playbooks/endpoint_hosts.yml --extra-vars="host_ip=$vm_ip host_type=node host_name=$name host_state=absent"
+        kubectl drain $name --ignore-daemonsets --delete-emptydir-data
+        kubectl delete node $name
+        ansible-playbook -i $storage_ip, playbooks/storage_hosts.yml --extra-vars="host_ip=$vm_ip host_type=k8s host_state=absent"
+        ansible-playbook playbooks/inventory.yml --extra-vars="host_group=zone_b_node host_ip=$vm_ip host_state=absent"
     EOT
   }
 }

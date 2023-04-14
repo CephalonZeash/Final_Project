@@ -2,11 +2,7 @@
   include_vars: 
     dir: ../../../global_vars
   tags:
-    - endpoint
-    - endpoint_docker
-    - endpoint_ddclient
-    - endpoint_haproxy
-    - endpoint_wireguard
+    - always
 
 - name: Include Docker related tasks
   include_tasks: docker.yml
@@ -35,7 +31,7 @@
 - name: Remove the host from the 'new_endpoint' group
   delegate_to: localhost
   lineinfile:
-    path: "../inventory.ini"
+    path: ../inventory.ini
     line: "{{ inventory_hostname }}"
     state: absent
   tags:
@@ -44,7 +40,7 @@
 - name: Add the host to the 'endpoint' group
   delegate_to: localhost
   lineinfile:
-    path: "../inventory.ini"
+    path: ../inventory.ini
     insertafter: "[^_]endpoint"
     line: "{{ inventory_hostname }}"
     state: present

@@ -2,6 +2,7 @@
   group:
     name: "{{ item.username }}"
   loop: "{{ users }}"
+  no_log: true
   tags:
     - basic_conf
     - basic_conf_user
@@ -15,7 +16,8 @@
     groups: "{{ item.0.groups | default( item.0.username ) }}"
     shell: "{{ item.0.shell | default('/bin/bash') }}"
   loop: "{{ users | subelements('hosts', 'skip_missing=True') }}"
-  when: inventory_hostname == item.1 or "all" == item.1
+  no_log: true
+  when: item.1 == inventory_hostname or item.1 == "all"
   tags:
     - basic_conf
     - basic_conf_user
@@ -26,15 +28,16 @@
     key: "{{ item.1 }}"
     state: "{{ item.0.state | default('present') }}"
   loop: "{{ vm_authorized_keys | subelements('keys', 'skip_missing=True') }}"
+  no_log: true
   tags:
     - basic_conf
     - basic_conf_user
 
-- name: Disable PasswordAuthentication
+- name: Disable password authentication through SSH
   lineinfile:
     path: /etc/ssh/sshd_config
     regex: ^(# *)?PasswordAuthentication
-    line: PasswordAuthentication no
+    line: "PasswordAuthentication no"
   notify:
     - Restart the OpenSSH server
   tags:

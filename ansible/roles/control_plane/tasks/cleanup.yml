@@ -1,4 +1,4 @@
-- name: Clear the HAProxy config for all control planes
+- name: Remove all control planes from the HAProxy config
   delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
@@ -10,7 +10,7 @@
     - control_plane
     - control_plane_cleanup
 
-- name: Clear the HAProxy config for all zone A nodes
+- name: Remove all zone A nodes from the HAProxy config
   delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
@@ -22,7 +22,7 @@
     - control_plane
     - control_plane_cleanup
 
-- name: Clear the HAProxy config for all zone B nodes
+- name: Remove all zone B nodes from the HAProxy config
   delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
   lineinfile:
     path: /etc/haproxy/haproxy.cfg
@@ -37,6 +37,7 @@
 - name: Reload the HAProxy config
   delegate_to: "{{ groups['endpoint'].0 | default(new_endpoint_ip) }}"
   shell: docker kill -s HUP haproxy
+  when: cluster_init == 1
   tags:
     - control_plane
     - control_plane_cleanup
@@ -76,7 +77,7 @@
     - control_plane_cleanup
 
 - name: Remove the previous K3s installation
-  shell: |+
+  shell: |
     if [[ -f /usr/local/bin/k3s-uninstall.sh ]]; then
       /usr/local/bin/k3s-uninstall.sh
     fi

@@ -1,33 +1,22 @@
-- name: Set mandatory packages
-  set_fact:
-    mandatory_packages:
-      - sudo
-      - qemu-guest-agent
-      - nfs-common
-  tags:
-    - basic_conf
-    - basic_conf_other
-
-- name: Remove Debian DVD from repo list
+- name: Remove the Debian DVD from the repository list
   lineinfile:
     path: /etc/apt/sources.list
-    regexp: '^deb cdrom'
+    regexp: ^deb cdrom
     state: absent
   tags:
     - basic_conf
     - basic_conf_other
 
 - name: Ensure dpkg is ready
-  shell: |
-    dpkg --configure -a
+  shell: dpkg --configure -a
   tags:
     - basic_conf
     - basic_conf_other
 
 - name: Install useful packages
   apt:
+    update_cache: true
     name: "{{ mandatory_packages + non_mandatory_packages }}"
-    state: latest
   tags:
     - basic_conf
     - basic_conf_other
@@ -43,10 +32,10 @@
     - basic_conf
     - basic_conf_other
 
-- name: Edit /etc/hosts file
+- name: Edit /etc/hosts
   lineinfile:
     path: /etc/hosts
-    regexp: "127.0.1.1"
+    regexp: 127.0.1.1
     line: "127.0.1.1       {{ ansible_hostname }}.{{ local_domain }}   {{ ansible_hostname }}"
   tags:
     - basic_conf

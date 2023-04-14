@@ -1,24 +1,37 @@
 #!/bin/bash
 
+# Define a function for fetching a peer's configuration
+function get_peer () {
+    printf "\nWhich peer do you want to get a config for?\n\n"
+    read -p "Enter name: " peer
+
+    printf "\nWhich format should the config be in?\n"
+    printf "        (1) QR code (requires higher terminal resolutions)\n"
+    printf "        (2) Conf file (needs to be transfered to peer)\n"
+
+    read -p "Enter number: " format
+
+    case $format in
+        1)
+            # Fetch the configuration from the Wireguard container in the form of a QR code
+            docker exec -it wireguard /app/show-peer $peer
+            ;;
+        2)
+            # Copy the configuration from Wireguard's volume to the working directory
+            cp /var/lib/docker/volumes/wireguard_config/_data/peer_$peer/peer_$peer.conf .
+            printf "\nCopied peer_$peer.conf to current directory\n"
+            ;;
+        *)
+            printf "\nWrong number.\n\n"
+            get_peer
+            ;;
+    esac
+}
+
 # Check privileges
 if [[ $UID != 0 ]]; then
     printf "\nThis script must be run as root!\n\n"
     exit
 fi
 
-printf "\nWhich peer do you want to get a config for?\n\n"
-read -p "Enter name: " peer
-
-printf "\nWhich format should the config be in?\n"
-printf "        (1) QR code (requires higher terminal resolutions)\n"
-printf "        (2) Conf file (needs to be transfered to peer)\n\n"
-
-read -p "Enter number: " format
-
-if [[ $format = 1 ]]; then
-    # Fetch the configuration from the Wireguard container in the form of a QR code
-    docker exec -it wireguard /app/show-peer $peer
-else
-    cp /var/lib/docker/volumes/wireguard_config/_data/peer_$peer/peer_$peer.conf .
-    printf "\nCopied peer_$peer.conf to current directory\n"
-fi
+get_peer

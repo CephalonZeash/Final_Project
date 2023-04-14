@@ -2,7 +2,43 @@
   hosts: pve
   remote_user: root
   gather_facts: false
-  roles:
-    - ../roles/vm_template
+  tasks:
+    - name: Include variable files
+      include_vars:
+        dir: ../global_vars
+      tags:
+        - always
+        
+    - name: Download the disk image
+      get_url:
+        url: "{{ template_disk_image_url }}"
+        dest: "{{ template_disk_image_path }}"
+        force: yes
+
+    - name: Delete the previous VM template
+      environment:
+        template_id: "{{ template_id }}"
+      shell: qm destroy $template_id
+      ignore_errors: true
+
+    - name: Create the VM template
+      environment:
+        template_name: "{{ template_name }}"
+        template_id: "{{ template_id }}"
+        image_path: "{{ template_disk_image_path }}"
+        storage: "{{ vm_storage }}"
+        extra_space: "{{ extra_vm_disk_space }}"
+      shell: |
+        qm create $template_id \
+          --name $template_name
+        qm importdisk $template_id $image_path local-lvm
+        qm set $template_id \
+          --scsihw virtio-scsi-pci \
+          --scsi0 ${storage}:vm-${template_id}-disk-0 \
+          --boot c \
+          --serial0 socket
+        qm resize $template_id scsi0 +$extra_space
+        qm template $template_id
+        rm -f $image_path
   tags:
     - vm_template

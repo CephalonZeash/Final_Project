@@ -8,16 +8,19 @@ metadata:
     cert-manager.io/cluster-issuer: letsencrypt
     traefik.ingress.kubernetes.io/router.middlewares: oc-redirect@kubernetescrd
 spec:
+  # Secret which will store the TLS certificate provided by Let's Encrypt
   tls:
     - secretName: oc-tls
       hosts:
         - domain.com
   rules:
+    # Listen to port 80 (http) for the domain domain.com on the path '/'
     - host: domain.com
       http:
         paths:
           - path: /
             pathType: Prefix
+            # Forward all requests which match the criteria to the 'oc' service on port 8080
             backend:
               service:
                 name: oc

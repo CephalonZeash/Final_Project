@@ -2,9 +2,7 @@
   include_vars:
     dir: ../../../global_vars
   tags:
-    - basic_conf
-    - basic_conf_user
-    - basic_conf_other
+    - always
 
 - name: Include user related tasks
   include_tasks: user.yml

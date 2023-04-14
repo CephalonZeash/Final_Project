@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-subdir-provisioner
+  namespace: oc
+  labels:
+    app: nfs-subdir-provisioner
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-subdir-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-subdir-provisioner
+    spec:
+      serviceAccountName: nfs-subdir-provisioner
+      containers:
+        - name: nfs-subdir-provisioner
+          image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: k8s-sigs.io/nfs-subdir-external-provisioner
+            # Storage server's IP address
+            - name: NFS_SERVER
+              value: 192.168.100.200
+            # Full path to directory within the NFS root, which will store all NFS PVs
+            - name: NFS_PATH
+              value: /var/nfs/k8s
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            # Storage server's IP address
+            server: 192.168.100.200
+            # Full path to directory within the NFS root, which will store all NFS PVs
+            path: /var/nfs/k8s

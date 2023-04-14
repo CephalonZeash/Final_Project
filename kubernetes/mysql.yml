@@ -1,7 +1,5 @@
 ---
 # Source: mysql-innodbcluster/templates/service_account_cluster.yaml
-#
-# This ServiceAccount is needed for the cluster to function properly
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -9,8 +7,6 @@ metadata:
   namespace: oc
 ---
 # Source: mysql-innodbcluster/templates/cluster_secret.yaml
-#
-# This secret defines MySQL credentials that will be used when authenticating
 apiVersion: v1
 kind: Secret
 metadata:
@@ -20,21 +16,20 @@ stringData:
   rootUser: "root"
   rootHost: "%"
 data:
-  rootPassword: "ecGFzc3dvcmQ=" # base64 encoded, in this case "password"
+  rootPassword: "emF2cnNuaQ=="
 ---
 # Source: mysql-innodbcluster/templates/deployment_cluster.yaml
-#
-# InnoDB cluster definition, including both the MySQL instances as well as the MySQL routers
 apiVersion: mysql.oracle.com/v2
 kind: InnoDBCluster
 metadata:
   name: mysql
   namespace: oc
 spec:
-  instances: 2
+  instances: 3
   tlsUseSelfSigned: true
   router:
-    instances: 2
+    instances: 3
+    version: 8.0.31
     podSpec:
       name: mysql-router
       resources:
@@ -44,20 +39,13 @@ spec:
         limits:
           cpu: 90m
           memory: 90Mi
-      # topologySpreadConstraints:
-      # - labelSelector:
-      #     matchLabels:
-      #       name: mysql-router
-      #   maxSkew: 1
-      #   topologyKey: zone
-      #   whenUnsatisfiable: DoNotSchedule
   secretName: mysql-cluster-secret
   imagePullPolicy : IfNotPresent
   baseServerId: 1000
-  version: 8.0.30
+  version: 8.0.31
   serviceAccountName: mysql-sa
   datadirVolumeClaimTemplate:
-    storageClassName: "nfs-sc"
+    storageClassName: nfs-subdir-provisioner
     accessModes: [ "ReadWriteMany" ]
     resources:
       requests:
@@ -74,10 +62,3 @@ spec:
         limits:
           cpu: 1000m
           memory: 1400Mi
-    # topologySpreadConstraints:
-    # - labelSelector:
-    #     matchLabels:
-    #       name: mysql
-    #   maxSkew: 1
-    #   topologyKey: zone
-    #   whenUnsatisfiable: DoNotSchedule

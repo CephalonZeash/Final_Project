@@ -1,13 +1,10 @@
-# This role should be executed in serial to avoid conflicts and other issues with the installation process.
+# This role should be executed in serial to avoid conflicts and other issues during the installation process.
 
 - name: Include variable files
   include_vars: 
     dir: ../../../global_vars
   tags:
-    - control_plane
-    - control_plane_cleanup
-    - control_plane_install
-    - control_plane_kubeconfig
+    - always
 
 - name: Set the endpoint variable
   set_fact:

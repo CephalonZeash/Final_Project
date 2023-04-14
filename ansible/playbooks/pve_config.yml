@@ -1,0 +1,16 @@
+# This playbook configures PVE.
+# Available tags:
+#  - pve_config
+#  - pve_config_general
+#  - pve_config_users
+
+- name: Configure PVE settings and users
+  hosts: pve
+  remote_user: root
+  gather_facts: false
+  roles:
+    - ../roles/pve_config
+  tags:
+    - pve
+    - pve-config
+    - pve-users

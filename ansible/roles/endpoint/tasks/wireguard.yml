@@ -1,4 +1,4 @@
-- name: Set the storage variable
+- name: Set the storage IP variable
   set_fact:
     new_storage_ip: "{{ groups['new_storage'].0 | default(omit) }}"
   when: groups['new_storage'].0 is defined
@@ -19,6 +19,7 @@
   shell: |+
     if [[ ! $(docker ps | grep wireguard) ]]; then
     mkdir -p /opt/docker_compose/wireguard
+    chmod -R 0700 /opt/docker_compose
     cd /opt/docker_compose/wireguard
     docker compose down
     docker volume rm wireguard_config
@@ -75,7 +76,7 @@
   file:
     path: /root/scripts
     state: directory
-    mode: 700
+    mode: 0700
   tags:
     - endpoint
     - endpoint_wireguard
@@ -84,7 +85,7 @@
   template:
     src: wg_peer_info.sh.j2
     dest: /root/scripts/wg_peer_info.sh
-    mode: 700
+    mode: 0700
   tags:
     - endpoint
     - endpoint_wireguard

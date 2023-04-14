@@ -1,3 +1,12 @@
+---
+# Source: mysql-operator/templates/service_account_operator.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mysql-operator-sa
+  namespace: mysql-operator
+---
+# Source: mysql-operator/templates/cluster_role_operator.yaml
 # The main role for the operator
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -56,6 +65,7 @@ rules:
     resources: [namespaces]
     verbs: [list, watch]
 ---
+# Source: mysql-operator/templates/cluster_role_sidecar.yaml
 # role for the server sidecar
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
@@ -68,6 +78,7 @@ rules:
   - apiGroups: [""]
     resources: ["pods/status"]
     verbs: ["get", "patch", "update", "watch"]
+  # Kopf needs patch on secrets or the sidecar will throw
   - apiGroups: [""]
     resources: ["secrets"]
     verbs: ["get", "create", "list", "watch", "patch"]
@@ -96,6 +107,7 @@ rules:
     resources: ["mysqlbackups/status"]
     verbs: ["get", "patch", "update", "watch"]
 ---
+# Source: mysql-operator/templates/cluster_role_binding_operator.yaml
 # Give access to the operator
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -105,42 +117,47 @@ subjects:
   - kind: ServiceAccount
     name: mysql-operator-sa
     namespace: mysql-operator
+  # TODO The following entry is for dev purposes only and must be deleted
+  #- kind: Group
+  #  name: system:serviceaccounts
+  #  apiGroup: rbac.authorization.k8s.io
 roleRef:
   kind: ClusterRole
   name: mysql-operator
   apiGroup: rbac.authorization.k8s.io
 ---
-apiVersion: zalando.org/v1
-kind: ClusterKopfPeering
+# Source: mysql-operator/templates/service.yaml
+apiVersion: v1
+kind: Service
 metadata:
   name: mysql-operator
----
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: mysql-operator
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mysql-operator-sa
   namespace: mysql-operator
+  labels:
+    name: mysql-operator
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9443
+    protocol: TCP
+  selector:
+    name: mysql-operator
 ---
+# Source: mysql-operator/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysql-operator
   namespace: mysql-operator
   labels:
-    version: "1.0"
+    version: "8.0.32-2.0.8"
     app.kubernetes.io/name: mysql-operator
     app.kubernetes.io/instance: mysql-operator
-    app.kubernetes.io/version: 8.0.31-2.0.7
+    app.kubernetes.io/version: "8.0.32-2.0.8"
     app.kubernetes.io/component: controller
-    app.kubernetes.io/managed-by: mysql-operator
-    app.kubernetes.io/created-by: mysql-operator
+    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/created-by: helm
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       name: mysql-operator
@@ -151,46 +168,29 @@ spec:
     spec:
       containers:
         - name: mysql-operator
-          image: mysql/mysql-operator:8.0.31-2.0.7
+          image: mysql/mysql-operator:8.0.32-2.0.8
           imagePullPolicy: IfNotPresent
-          args:
-            [
-              "mysqlsh",
-              "--log-level=@INFO",
-              "--pym",
-              "mysqloperator",
-              "operator",
-            ]
+          args: ["mysqlsh", "--log-level=@INFO", "--pym", "mysqloperator", "operator"]
           env:
-            - name: MYSQLSH_USER_CONFIG_HOME
-              value: /mysqlsh
+          - name: MYSQLSH_USER_CONFIG_HOME
+            value: /mysqlsh
+          
+          - name: MYSQL_OPERATOR_IMAGE_PULL_POLICY
+            value: IfNotPresent
           volumeMounts:
             - name: mysqlsh-home
               mountPath: /mysqlsh
-            - name: tmpdir
-              mountPath: /tmp
           securityContext:
-            runAsUser: 2
             allowPrivilegeEscalation: false
             privileged: false
             readOnlyRootFilesystem: true
-          resources:
-            requests:
-              cpu: 100m
-              memory: 150Mi
-            limits:
-              cpu: 300m
-              memory: 250Mi
       volumes:
         - name: mysqlsh-home
           emptyDir: {}
-        - name: tmpdir
-          emptyDir: {}
-      topologySpreadConstraints:
-        - maxSkew: 1
-          topologyKey: zone
-          whenUnsatisfiable: DoNotSchedule
-          labelSelector:
-            matchLabels:
-              name: mysql-operator
       serviceAccountName: mysql-operator-sa
+---
+# Source: mysql-operator/templates/cluster_kopf_keepering.yaml
+apiVersion: zalando.org/v1
+kind: ClusterKopfPeering
+metadata:
+  name: mysql-operator

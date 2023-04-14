@@ -11,6 +11,7 @@ spec:
   minReplicas: 3
   maxReplicas: 6
   metrics:
+    # Number of Pod replicas follow 'target' values for CPU and memory usage
     - type: Resource
       resource:
         name: cpu
@@ -23,6 +24,8 @@ spec:
         target:
           type: Utilization
           averageUtilization: 80
+  # These policies avoid sudden jumps/drops in Pod count caused by short burts of resource usage.
+  # An example would be compiling a single project, which doesn't require nor is able to use a higher number of Pods.
   behavior:
     scaleUp:
       policies:

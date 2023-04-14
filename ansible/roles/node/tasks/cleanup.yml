@@ -33,7 +33,7 @@
     - node_cleanup
 
 - name: Remove the previous K3s installation
-  shell: |+
+  shell: |
     if [[ -f /usr/local/bin/k3s-agent-uninstall.sh ]]; then
       /usr/local/bin/k3s-agent-uninstall.sh
     fi

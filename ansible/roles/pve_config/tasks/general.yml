@@ -1,20 +1,32 @@
-- name: Edit global bash settings
-  template:
-    src: bash.bashrc.j2
-    dest: /etc/bash.bashrc
+- name: Remove the Proxmox enterprise repository
+  file:
+    path: /etc/apt/sources.list.d/pve-enterprise.list
+    state: absent
   tags:
     - pve_config
     - pve_config_general
 
-- name: Create Proxmox groups and define their permissions
-  environment:
-    NAME: "{{ item.name }}"
-    COMMENT: "{{ item.comment }}"
-    ROLE: "{{ item.role }}"
-  shell: |
-    pveum group add $NAME -comment "$COMMENT"
-    pveum acl modify / -group $NAME -role $ROLE
-  loop: "{{ pve_groups }}"
+- name: Add the Proxmox no-subscription repository
+  apt_repository:
+    repo: "deb [arch=amd64] http://download.proxmox.com/debian/pve bullseye pve-no-subscription"
+    filename: pve-no-subscription
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Update repositories and install useful packages
+  apt:
+    update_cache: true
+    name: "{{ non_mandatory_packages }}"
+    state: latest
+  tags:
+    - pve_config
+    - pve_config_general
+
+- name: Edit global bash settings
+  template:
+    src: bash.bashrc.j2
+    dest: /etc/bash.bashrc
   tags:
     - pve_config
     - pve_config_general
@@ -36,8 +48,7 @@
     - pve_config_general
 
 - name: Add security groups to the cluster config
-  shell: |
-    mv /tmp/cluster.fw /etc/pve/firewall/
+  shell: mv /tmp/cluster.fw /etc/pve/firewall/
   tags:
     - pve_config
     - pve_config_general
