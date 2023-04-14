@@ -74,93 +74,40 @@ ansible-playbook -i ansible/inventory.ini --ask-vault-pass ansible/playbooks/vm_
 
 ## Kubernetes configuration
 
-- Create `oc` and `cert-manager` namespaces:
+Run all of these commands:
 
-```bash
-kubectl create ns oc
 ```
-
-```bash
 kubectl create ns cert-manager
-```
-
-- Create the NFS storage class
-
-```bash
-kubectl apply -f kubernetes/nfs/rbac.yml
+kubectl create ns oc
+kubectl create ns mysql-operator
 ```
 
 ```
-kubectl apply -f kubernetes/nfs
+kubectl apply -f kubernetes/nfs-subdir-provisioner
+kubectl apply -f kubernetes/descheduler
 ```
 
-- Install cert-manager (here I use yaml manifests templated from the jetstack/cert-manager helm chart):
-
-```bash
-kubectl apply -f kubernetes/cert-manager
+```
+kubectl apply -f kubernetes/cert-manager.yml
 ```
 
-- Create the Letsencrypt cluster issuer:
+Then wait for cert-manager to get up and running.
 
-```bash
+```
 kubectl apply -f kubernetes/letsencrypt.yml
 ```
 
-- Change the current namespace to "oc":
-
-```bash
+```
 kubens oc
-```
-
-- Deploy the MySQL Kubernetes operator (here I use modified yaml manifests which you can get from MySQL's documentation):
-
-```bash
 kubectl apply -f kubernetes/mysql-operator/deploy-crds.yml
-```
-
-```bash
 kubectl apply -f kubernetes/mysql-operator/deployment.yml
-```
-
-- Deploy the InnoDB cluster (here I use modified yaml manifests templated from the mysql-operator/mysql-innodbcluster helm chart):
-
-```bash
 kubectl apply -f kubernetes/mysql.yml
 ```
 
-- Wait for the InnoDB cluster
-- Apply the online compiler manifests:
+Finally, once the entire InnoDB cluster is ready, apply the Online C# Compiler's files:
 
-```bash
+```
 kubectl apply -f kubernetes/oc
 ```
 
 - Get Wireguard peer configs from the endpoint using the wg_peer_info.sh script for remote administration
-
-# Literature (incomplete)
-- https://pve.proxmox.com/wiki/Install_Proxmox_VE_on_Debian_11_Bullseye
-- https://cdimage.debian.org/debian-cd/current/amd64/iso-dvd/
-- https://www.balena.io/etcher/
-- https://cdimage.debian.org/cdimage/cloud/
-- https://docs.ansible.com/ansible_community.html
-- https://www.terraform.io/downloads
-- https://www.terraform.io/docs
-- https://registry.terraform.io/providers/Telmate/proxmox/latest/docs
-- https://github.com/linuxserver/docker-wireguard
-- https://docs.haproxy.org/2.6/configuration.html
-- https://www.domstamand.com/adding-haproxy-as-load-balancer-to-the-kubernetes-cluster/
-- https://hub.docker.com/_/haproxy
-- https://cloud.google.com/docs/terraform/best-practices-for-terraform#module-structure
-- https://pve.proxmox.com/wiki/Firewall
-- https://www.youtube.com/watch?v=X48VuDVv0do&t=11105s
-- https://k3s.io/
-- https://medium.com/tailwinds-navigator/kubernetes-tip-how-to-make-kubernetes-react-faster-when-nodes-fail-1e248e184890
-- https://github.com/kubernetes-sigs/nfs-subdir-external-provisioner
-- https://dev.mysql.com/doc/mysql-operator/en/mysql-operator-introduction.html
-- https://artifacthub.io/packages/helm/cert-manager/cert-manager
-- https://dev.mysql.com/doc/mysql-operator/en/mysql-operator-introduction.html
-- https://kubernetes.io/docs/home/
-- https://pve.proxmox.com/pve-docs/pveum.1.html
-- https://www.namecheap.com/support/knowledgebase/article.aspx/583/11/how-do-i-configure-ddclient/
-- https://hub.docker.com/r/linuxserver/ddclient
-- https://docs.docker.com/compose/compose-file/compose-file-v3/
