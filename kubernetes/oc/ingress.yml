@@ -13,9 +13,21 @@ spec:
     - secretName: oc-tls
       hosts:
         - domain.com
+        - www.domain.com
   rules:
     # Listen to port 80 (http) for the domain domain.com on the path '/'
     - host: domain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            # Forward all requests which match the criteria to the 'oc' service on port 8080
+            backend:
+              service:
+                name: oc
+                port:
+                  number: 8080
+    - host: www.domain.com
       http:
         paths:
           - path: /
